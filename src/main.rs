@@ -6,7 +6,7 @@ async fn main() -> anyhow::Result<()> {
     let _ = tracing_subscriber::fmt::init();
 
     let db = setup_database().await?;
-    setup_discord(db).await;
+    let _ = setup_discord(db).await;
 
     Ok(())
 }
