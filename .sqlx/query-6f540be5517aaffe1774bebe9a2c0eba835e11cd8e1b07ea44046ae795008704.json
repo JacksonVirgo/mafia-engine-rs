@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT * FROM users WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 20
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6f540be5517aaffe1774bebe9a2c0eba835e11cd8e1b07ea44046ae795008704"
+}

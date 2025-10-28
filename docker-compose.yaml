@@ -1,0 +1,49 @@
+services:
+    db:
+        image: mysql:8.0
+        ports:
+            - "3307:3306"
+        environment:
+            MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+            MYSQL_DATABASE: mafia-engine
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-uroot"]
+            interval: 2s
+            timeout: 3s
+            retries: 15
+            start_period: 10s
+
+    mafia-engine-dev:
+        build:
+            context: .
+        ports:
+            - "3000:3000"
+        environment:
+            - RUST_ENV=development
+        env_file:
+            - .env
+            - .env.local
+        volumes:
+            - ./env:/app/.env:ro
+        develop:
+            watch:
+                - path: ./src
+                  action: rebuild
+                - path: ./Cargo.toml
+                  action: rebuild
+        profiles:
+            - dev
+        depends_on:
+            db:
+                condition: service_healthy
+
+    mafia-engine:
+        build:
+            context: .
+        ports:
+            - "8000:8000"
+        restart: unless-stopped
+        environment:
+            - RUST_ENV=production
+        profiles:
+            - prod

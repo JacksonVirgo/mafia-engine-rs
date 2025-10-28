@@ -1,5 +1,3 @@
-use std::i64;
-
 use mafia_engine_rs::app::{database::setup_database, discord::setup_discord};
 
 #[tokio::main]

@@ -13,6 +13,8 @@ pub async fn setup_discord(db: Database) {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let intents = serenity::GatewayIntents::non_privileged();
 
+    println!("Here");
+
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![test()],
