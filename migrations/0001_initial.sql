@@ -1,0 +1,14 @@
+CREATE TABLE users (
+    id BIGINT UNSIGNED PRIMARY KEY
+);
+
+CREATE TABLE servers (
+    id BIGINT UNSIGNED PRIMARY KEY
+);
+
+CREATE TABLE members (
+    id BIGINT UNSIGNED NOT NULL,
+    server_id BIGINT UNSIGNED NOT NULL REFERENCES servers (id) ON DELETE CASCADE,
+    username VARCHAR(32),
+    PRIMARY KEY (id, server_id)
+);

@@ -1,7 +1,14 @@
-use mafia_engine_rs::app::discord::setup_discord;
+use std::i64;
+
+use mafia_engine_rs::app::{database::setup_database, discord::setup_discord};
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
-    setup_discord().await;
+    let _ = tracing_subscriber::fmt::init();
+
+    let db = setup_database().await?;
+    setup_discord(db).await;
+
+    Ok(())
 }
