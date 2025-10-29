@@ -1,12 +1,12 @@
+use crate::app::event_handler::event_handler;
+use crate::app::system::app_builder::AppBuilder;
+use crate::app::{database::Database, system::plugin::Plugin};
+use crate::features::testing::command::test;
+use crate::features::testing::component::TestingButton;
+use poise::serenity_prelude::{self as serenity, GatewayIntents};
 use std::sync::Arc;
 
-use crate::app::database::Database;
-use crate::app::discord::event_handler::event_handler;
-use crate::features::testing::command::test;
-use poise::serenity_prelude::{self as serenity, GatewayIntents};
-
-pub mod event_handler;
-
+#[derive(Clone)]
 pub struct ContextData {
     pub db: Arc<Database>,
 }
@@ -15,14 +15,22 @@ pub type Context<'a> = poise::Context<'a, ContextData, Error>;
 
 pub async fn setup_discord(db: Database) -> anyhow::Result<()> {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
-    let intents = serenity::GatewayIntents::privileged()
+    let intents = serenity::GatewayIntents::non_privileged()
         | GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT
         | GatewayIntents::DIRECT_MESSAGES;
 
+    let mut commands: Vec<poise::Command<ContextData, Error>> = Vec::new();
+
+    let mut app_builder = AppBuilder {
+        commands: &mut commands,
+    };
+
+    InitialPlugin.build(&mut app_builder);
+
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![test()],
+            commands: commands,
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
@@ -43,4 +51,11 @@ pub async fn setup_discord(db: Database) -> anyhow::Result<()> {
 
     client.start().await?;
     Ok(())
+}
+
+pub struct InitialPlugin;
+impl Plugin for InitialPlugin {
+    fn build(&self, app: &mut AppBuilder) {
+        app.add_command(test()).add_component("test", TestingButton);
+    }
 }

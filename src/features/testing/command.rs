@@ -31,7 +31,7 @@ pub async fn test(ctx: Context<'_>) -> Result<(), Error> {
                             "type": ComponentType::Button,
                             "style": ButtonStyle::Primary,
                             "label": "Raw Button",
-                            "custom_id": "raw_button_test"
+                            "custom_id": "test"
                         }
                     ]
                 }
