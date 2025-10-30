@@ -1,19 +1,8 @@
-use crate::app::discord::ContextData;
 use crate::prelude::*;
 use async_trait::async_trait;
 use poise::serenity_prelude::json::{json, to_value};
 use poise::serenity_prelude::{ButtonStyle, ComponentType};
 use serde_json::Value;
-
-pub struct ContextBundle {
-    pub ctx: serenity::Context,
-    pub data: ContextData,
-}
-
-#[async_trait]
-pub trait Component {
-    async fn run(&self, i: &serenity::Interaction, ctx: ContextBundle);
-}
 
 #[async_trait]
 pub trait Button {

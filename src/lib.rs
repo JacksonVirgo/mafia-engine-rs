@@ -8,7 +8,7 @@ pub mod prelude {
             discord::{Context, ContextData, Error},
             system::{
                 app_builder::AppBuilder,
-                component::{Button, Component, ContextBundle},
+                component::{Component, ContextBundle, button::Button},
                 plugin::Plugin,
             },
         },
