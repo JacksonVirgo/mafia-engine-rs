@@ -1,9 +1,17 @@
+use crate::prelude::*;
 use async_trait::async_trait;
-use poise::serenity_prelude::{self as serenity, CreateInteractionResponseMessage};
-
-use crate::app::component::{Component, ContextBundle};
+use poise::serenity_prelude::{self as serenity, CreateButton, CreateInteractionResponseMessage};
 
 pub struct TestingButton;
+
+#[async_trait]
+impl Button for TestingButton {
+    async fn build(&self) -> CreateButton {
+        CreateButton::new("test")
+            .label("Test Button Yaya")
+            .style(serenity::ButtonStyle::Danger)
+    }
+}
 
 #[async_trait]
 impl Component for TestingButton {

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 
-use crate::app::component::Component;
+use crate::prelude::*;
 
 pub type ComponentPtr = Arc<dyn Component + Send + Sync>;
 

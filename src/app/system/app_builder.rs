@@ -1,6 +1,9 @@
-use crate::app::{
-    discord::{ContextData, Error},
-    system::registry::{COMPONENT_REGISTRY, IntoComponentPtr},
+use crate::{
+    app::{
+        discord::{ContextData, Error},
+        system::registry::{COMPONENT_REGISTRY, IntoComponentPtr},
+    },
+    prelude::Plugin,
 };
 
 pub struct AppBuilder<'a> {
@@ -8,6 +11,25 @@ pub struct AppBuilder<'a> {
 }
 
 impl<'a> AppBuilder<'a> {
+    pub fn add_plugin<P>(&mut self, plugin: P) -> &mut Self
+    where
+        P: Plugin,
+    {
+        plugin.build(self);
+        self
+    }
+
+    pub fn add_plugins<I, P>(&mut self, plugins: I) -> &mut Self
+    where
+        I: IntoIterator<Item = P>,
+        P: Plugin,
+    {
+        for plugin in plugins {
+            plugin.build(self);
+        }
+        self
+    }
+
     pub fn add_component<T>(&mut self, key: impl Into<String>, comp: T) -> &mut Self
     where
         T: IntoComponentPtr,

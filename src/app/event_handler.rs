@@ -1,8 +1,5 @@
-use crate::app::{
-    component::ContextBundle,
-    discord::{ContextData, Error},
-    system::registry::get_component,
-};
+use crate::{app::system::registry::get_component, prelude::*};
+
 use poise::serenity_prelude::{self as serenity, FullEvent, InteractionType};
 use tracing::info;
 

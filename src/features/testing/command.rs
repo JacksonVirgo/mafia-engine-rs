@@ -1,10 +1,10 @@
 use crate::{
     app::discord::{Context, Error},
     data::users::User,
+    features::testing::component::TestingButton,
+    prelude::Button,
 };
-use poise::serenity_prelude::{
-    self as serenity, ButtonStyle, ComponentType, Request, Route, json::json,
-};
+use poise::serenity_prelude::{self as serenity, ComponentType, Request, Route, json::json};
 use tracing::info;
 
 #[poise::command(slash_command)]
@@ -19,6 +19,9 @@ pub async fn test(ctx: Context<'_>) -> Result<(), Error> {
         return Ok(());
     };
 
+    let button = TestingButton;
+    let cmp_button = button.build_as_json().await?;
+
     let body = json!({
         "type": 4,
         "data": {
@@ -27,12 +30,7 @@ pub async fn test(ctx: Context<'_>) -> Result<(), Error> {
                 {
                     "type": ComponentType::ActionRow,
                     "components": [
-                        {
-                            "type": ComponentType::Button,
-                            "style": ButtonStyle::Primary,
-                            "label": "Raw Button",
-                            "custom_id": "test"
-                        }
+                        cmp_button
                     ]
                 }
             ]

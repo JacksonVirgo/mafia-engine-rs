@@ -1,8 +1,7 @@
 use crate::app::event_handler::event_handler;
 use crate::app::system::app_builder::AppBuilder;
 use crate::app::{database::Database, system::plugin::Plugin};
-use crate::features::testing::command::test;
-use crate::features::testing::component::TestingButton;
+use crate::features::FeaturePlugin;
 use poise::serenity_prelude::{self as serenity, GatewayIntents};
 use std::sync::Arc;
 
@@ -56,6 +55,6 @@ pub async fn setup_discord(db: Database) -> anyhow::Result<()> {
 pub struct InitialPlugin;
 impl Plugin for InitialPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_command(test()).add_component("test", TestingButton);
+        app.add_plugin(FeaturePlugin);
     }
 }
