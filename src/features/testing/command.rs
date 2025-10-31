@@ -1,8 +1,11 @@
 use crate::{
-    app::discord::{Context, Error},
+    app::{
+        discord::{Context, Error},
+        logging::log,
+    },
     data::users::User,
     features::testing::component::TestingButton,
-    prelude::Button,
+    prelude::{Button, LogType},
 };
 use poise::serenity_prelude::{self as serenity, ComponentType, Request, Route, json::json};
 use tracing::info;
@@ -49,6 +52,12 @@ pub async fn test(ctx: Context<'_>) -> Result<(), Error> {
     .body(Some(body_str.into_bytes()));
 
     ctx.http().request(req).await?;
+
+    log(
+        LogType::Info,
+        "This should have a file",
+        Some("Insert detailed error trace here"),
+    );
 
     Ok(())
 }

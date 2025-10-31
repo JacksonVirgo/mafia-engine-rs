@@ -21,7 +21,7 @@ CREATE TABLE signup_categories (
 
 CREATE TABLE signup_slots (
     id SERIAL PRIMARY KEY,
-    category_id INT NOT NULL REFERENCES signup_categories (id) ON DELETE CASCADE,
+    category_id BIGINT UNSIGNED NOT NULL REFERENCES signup_categories (id) ON DELETE CASCADE,
 
     name VARCHAR(32),
 
@@ -31,7 +31,7 @@ CREATE TABLE signup_slots (
 
 CREATE TABLE signup_users (
     id SERIAL PRIMARY KEY,
-    slot_id INT NOT NULL REFERENCES signup_slots (id) ON DELETE CASCADE,
+    slot_id BIGINT UNSIGNED NOT NULL REFERENCES signup_slots (id) ON DELETE CASCADE,
     user_id BIGINT UNSIGNED NOT NULL REFERENCES users (id) ON DELETE CASCADE,
 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

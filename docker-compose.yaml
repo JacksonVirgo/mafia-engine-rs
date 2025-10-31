@@ -31,6 +31,7 @@ services:
                   action: rebuild
                 - path: ./Cargo.toml
                   action: rebuild
+        command: cargo run
         profiles:
             - dev
         depends_on:

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO signups (message_id, name) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "ab8cc0e73fd04f2e340c5c4ef5f6407fb2bcd56a8055c0d62f60936b2f0edf73"
+}

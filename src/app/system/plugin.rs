@@ -18,6 +18,6 @@ macro_rules! plugin {
     };
 
     ($name:ident, $body:block) => {
-        feature_plugin!($name, |app| $body);
+        plugin!($name, |app| $body);
     };
 }

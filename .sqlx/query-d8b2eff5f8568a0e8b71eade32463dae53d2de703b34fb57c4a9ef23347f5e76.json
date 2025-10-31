@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO signup_categories (\n                signup_id,\n                name,\n                button_name,\n                max_slots,\n                is_hoisted,\n                is_anonymous,\n                allows_hydra_slots,\n                allows_single_slots\n            ) VALUES (\n                ?, ?, ?, ?, ?, ?, ?, ?\n            )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "d8b2eff5f8568a0e8b71eade32463dae53d2de703b34fb57c4a9ef23347f5e76"
+}
