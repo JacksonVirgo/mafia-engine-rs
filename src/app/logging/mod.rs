@@ -1,7 +1,10 @@
+use crate::app::logging::features::LogFeature;
 use poise::serenity_prelude::{
     CreateAllowedMentions, CreateAttachment, ExecuteWebhook, Http, Webhook,
 };
 use tracing::{debug, error, info, warn};
+
+pub mod features;
 
 pub enum LogType {
     Info,
@@ -11,18 +14,13 @@ pub enum LogType {
     Critical,
 }
 
-pub enum LogFeature {
-    Unknown,
-    Signup,
-}
-
 pub fn log<D: Into<String>>(log_type: LogType, str: impl Into<String>, data: Option<D>) {
     log_feature(log_type, LogFeature::Unknown, str, data);
 }
 
 pub fn log_feature<D: Into<String>>(
     log_type: LogType,
-    _: LogFeature,
+    feature: LogFeature,
     str: impl Into<String>,
     data: Option<D>,
 ) {
@@ -56,7 +54,7 @@ pub fn log_feature<D: Into<String>>(
             LogType::Critical => "CRITICAL",
         };
 
-        let content = format!("**{}**: {}", level, message);
+        let content = format!("**{}** [{}]: {}", level, feature.to_string(), message);
 
         let mut builder = ExecuteWebhook::new()
             .content(content)

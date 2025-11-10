@@ -7,7 +7,7 @@ pub mod prelude {
         app::{
             database::Database,
             discord::{Context, ContextData, Error},
-            logging::{LogFeature, LogType},
+            logging::{LogType, features::LogFeature},
             system::{
                 app_builder::AppBuilder,
                 component::{Component, ContextBundle, button::Button},
