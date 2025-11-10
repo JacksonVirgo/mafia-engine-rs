@@ -1,4 +1,11 @@
-use crate::prelude::*;
+use std::num::ParseIntError;
+
+use crate::{
+    app::logging::log_feature,
+    data::signups::queries::join::user_join_signup,
+    features::signups::{dashboard::format::signup_dashboard, types::full_signup::FullSignup},
+    prelude::*,
+};
 use async_trait::async_trait;
 use poise::serenity_prelude::{self as serenity, ButtonStyle, CreateButton};
 
@@ -31,13 +38,113 @@ impl Component for JoinSignupBtn {
     }
     async fn run(&self, i: &serenity::Interaction, ctx: ContextBundle) {
         if let serenity::Interaction::Component(cmp) = i {
+            let user_id = cmp.user.id.get();
+            let Some(raw_category_id) = ctx.i_ctx else {
+                log_feature(
+                    LogType::Error,
+                    LogFeature::Signup,
+                    format!(
+                        "Button for signup at <#{}> has missing context",
+                        cmp.message.id.get()
+                    ),
+                    None::<String>,
+                );
+
+                let _ = cmp
+                    .create_response(
+                        ctx.ctx.http,
+                        Response::Message(
+                            ResponseMsg::new()
+                                .content("Could not join signup [err_001]")
+                                .ephemeral(true),
+                        ),
+                    )
+                    .await;
+                return;
+            };
+
+            let Ok(category_id) = raw_category_id
+                .parse::<u64>()
+                .map_err(|e: ParseIntError| anyhow::anyhow!(e))
+            else {
+                log_feature(
+                    LogType::Error,
+                    LogFeature::Signup,
+                    format!(
+                        "Button for signup at <#{}> has invalid context",
+                        cmp.message.id.get()
+                    ),
+                    None::<String>,
+                );
+
+                let _ = cmp
+                    .create_response(
+                        ctx.ctx.http,
+                        Response::Message(
+                            ResponseMsg::new()
+                                .content("Could not join signup [err_002]")
+                                .ephemeral(true),
+                        ),
+                    )
+                    .await;
+                return;
+            };
+
+            match user_join_signup(&ctx.data.db, category_id, user_id).await {
+                Ok(_) => {}
+                Err(e) => {
+                    log_feature(
+                        LogType::Error,
+                        LogFeature::Signup,
+                        format!(
+                            "Database failed to add <@{}> ({}) to category {} in signup <#{}>.",
+                            cmp.user.id.get(),
+                            cmp.user.name,
+                            category_id,
+                            cmp.message.id.get()
+                        ),
+                        Some(e.to_string()),
+                    );
+
+                    let _ = cmp
+                        .create_response(
+                            ctx.ctx.http,
+                            Response::Message(
+                                ResponseMsg::new()
+                                    .content(
+                                        "Could not join signup, try again in a moment [err_003]",
+                                    )
+                                    .ephemeral(true),
+                            ),
+                        )
+                        .await;
+
+                    return;
+                }
+            }
+
+            let full_signup = match FullSignup::fetch(&ctx.data.db, cmp.message.id.get()).await {
+                Ok(s) => s,
+                Err(e) => {
+                    log_feature(
+                        LogType::Error,
+                        LogFeature::Signup,
+                        format!(
+                            "Failed to fetch full signup data for signup <#{}>",
+                            cmp.message.id.get()
+                        ),
+                        Some(e.to_string()),
+                    );
+                    return;
+                }
+            };
+
+            let (embed, components) = signup_dashboard(full_signup).await;
+
             let _ = cmp
                 .create_response(
                     ctx.ctx.http,
-                    Response::Message(ResponseMsg::new().content(format!(
-                        "Cat: {}",
-                        ctx.i_ctx.unwrap_or(String::from("None"))
-                    ))),
+                    Response::UpdateMessage(ResponseMsg::new().embed(embed).components(components)),
                 )
                 .await;
         }

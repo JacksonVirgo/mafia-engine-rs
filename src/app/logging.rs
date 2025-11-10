@@ -1,4 +1,6 @@
-use poise::serenity_prelude::{CreateAttachment, ExecuteWebhook, Http, Webhook};
+use poise::serenity_prelude::{
+    CreateAllowedMentions, CreateAttachment, ExecuteWebhook, Http, Webhook,
+};
 use tracing::{debug, error, info, warn};
 
 pub enum LogType {
@@ -11,6 +13,7 @@ pub enum LogType {
 
 pub enum LogFeature {
     Unknown,
+    Signup,
 }
 
 pub fn log<D: Into<String>>(log_type: LogType, str: impl Into<String>, data: Option<D>) {
@@ -55,7 +58,9 @@ pub fn log_feature<D: Into<String>>(
 
         let content = format!("**{}**: {}", level, message);
 
-        let mut builder = ExecuteWebhook::new().content(content);
+        let mut builder = ExecuteWebhook::new()
+            .content(content)
+            .allowed_mentions(CreateAllowedMentions::new());
 
         if let Some(d) = data {
             let attachment = CreateAttachment::bytes(d, "log.txt");
