@@ -50,11 +50,18 @@ pub async fn signup_dashboard(signup: FullSignup) -> (CreateEmbed, Vec<CreateAct
             hoisted.push(field);
         } else {
             fields.push(field);
+
+            let is_full = match c.max_slots {
+                None => false,
+                Some(limit) => user_ids.len() >= (limit as usize),
+            };
+
             buttons.push(
                 JoinSignupBtn {
                     button_name: c.button_name.to_string(),
                     category: c.id,
                     is_primary: buttons.len() == 0,
+                    is_full,
                 }
                 .build()
                 .await,

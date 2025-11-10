@@ -10,6 +10,7 @@ pub struct JoinSignupBtn {
     pub category: u64,
     pub button_name: String,
     pub is_primary: bool,
+    pub is_full: bool,
 }
 
 #[async_trait]
@@ -22,6 +23,7 @@ impl Button for JoinSignupBtn {
                 ButtonStyle::Secondary
             })
             .label(self.button_name.as_str())
+            .disabled(self.is_full)
     }
 }
 
