@@ -2,12 +2,14 @@ use std::num::ParseIntError;
 
 use crate::{
     app::logging::log_feature,
-    data::signups::queries::join::user_join_signup,
+    data::signups::queries::join::{UserJoinSignupError, user_join_signup},
     features::signups::{dashboard::format::signup_dashboard, types::full_signup::FullSignup},
     prelude::*,
 };
 use async_trait::async_trait;
-use poise::serenity_prelude::{self as serenity, ButtonStyle, CreateButton};
+use poise::serenity_prelude::{
+    self as serenity, ButtonStyle, ComponentInteraction, CreateButton, Http,
+};
 
 #[derive(Default, Clone)]
 pub struct JoinSignupBtn {
@@ -41,29 +43,26 @@ impl Component for JoinSignupBtn {
             let Some(guild_id) = cmp.guild_id else {
                 return;
             };
-
             let user_id = cmp.user.id.get();
-            let Some(raw_category_id) = ctx.i_ctx else {
-                log_feature(
-                    LogType::Error,
-                    LogFeature::Signup,
-                    format!(
-                        "Button for signup at <#{}> has missing context",
-                        cmp.message.id.get()
-                    ),
-                    None::<String>,
-                );
+            let guild_id = guild_id.get();
+            let channel_id = cmp.channel_id.get();
+            let message_id = cmp.message.id.get();
 
-                let _ = cmp
-                    .create_response(
-                        ctx.ctx.http,
-                        Response::Message(
-                            ResponseMsg::new()
-                                .content("Could not join signup [err_001]")
-                                .ephemeral(true),
-                        ),
-                    )
-                    .await;
+            let message_url = format!(
+                "https://discord.com/channels/{}/{}/{}",
+                guild_id, channel_id, message_id
+            );
+
+            let Some(raw_category_id) = ctx.i_ctx else {
+                log_signup_error(
+                    UserJoinSignupError::Other(
+                        format!("Button for signup at {} has missing context", message_url),
+                        None,
+                    ),
+                    &ctx.ctx.http,
+                    cmp,
+                )
+                .await;
                 return;
             };
 
@@ -71,67 +70,22 @@ impl Component for JoinSignupBtn {
                 .parse::<u64>()
                 .map_err(|e: ParseIntError| anyhow::anyhow!(e))
             else {
-                log_feature(
-                    LogType::Error,
-                    LogFeature::Signup,
-                    format!(
-                        "Button for signup at <#{}> has invalid context",
-                        cmp.message.id.get()
+                log_signup_error(
+                    UserJoinSignupError::Other(
+                        format!("Button for signup at {} has invalid context", message_url),
+                        None,
                     ),
-                    None::<String>,
-                );
-
-                let _ = cmp
-                    .create_response(
-                        ctx.ctx.http,
-                        Response::Message(
-                            ResponseMsg::new()
-                                .content("Could not join signup [err_002]")
-                                .ephemeral(true),
-                        ),
-                    )
-                    .await;
+                    &ctx.ctx.http,
+                    cmp,
+                )
+                .await;
                 return;
             };
 
             match user_join_signup(&ctx.data.db, category_id, user_id).await {
                 Ok(_) => {}
                 Err(e) => {
-                    let guild_id = guild_id.get();
-                    let channel_id = cmp.channel_id.get();
-                    let message_id = cmp.message.id.get();
-
-                    let message_url = format!(
-                        "https://discord.com/channels/{}/{}/{}",
-                        guild_id, channel_id, message_id
-                    );
-
-                    log_feature(
-                        LogType::Error,
-                        LogFeature::Signup,
-                        format!(
-                            "Database failed to add <@{}> ({}) to category {} in signup {}.",
-                            cmp.user.id.get(),
-                            cmp.user.name,
-                            category_id,
-                            message_url
-                        ),
-                        Some(e.to_string()),
-                    );
-
-                    let _ = cmp
-                        .create_response(
-                            ctx.ctx.http,
-                            Response::Message(
-                                ResponseMsg::new()
-                                    .content(
-                                        "Could not join signup, try again in a moment [err_003]",
-                                    )
-                                    .ephemeral(true),
-                            ),
-                        )
-                        .await;
-
+                    log_signup_error(e, &ctx.ctx.http, cmp).await;
                     return;
                 }
             }
@@ -139,15 +93,15 @@ impl Component for JoinSignupBtn {
             let full_signup = match FullSignup::fetch(&ctx.data.db, cmp.message.id.get()).await {
                 Ok(s) => s,
                 Err(e) => {
-                    log_feature(
-                        LogType::Error,
-                        LogFeature::Signup,
-                        format!(
-                            "Failed to fetch full signup data for signup <#{}>",
-                            cmp.message.id.get()
+                    log_signup_error(
+                        UserJoinSignupError::Other(
+                            format!("Failed to fetch updated signup in {}", message_url),
+                            Some(e.to_string()),
                         ),
-                        Some(e.to_string()),
-                    );
+                        &ctx.ctx.http,
+                        cmp,
+                    )
+                    .await;
                     return;
                 }
             };
@@ -162,4 +116,23 @@ impl Component for JoinSignupBtn {
                 .await;
         }
     }
+}
+
+async fn log_signup_error(error: UserJoinSignupError, http: &Http, cmp: &ComponentInteraction) {
+    let content: String = match error {
+        UserJoinSignupError::Other(short, error_trace) => {
+            log_feature(LogType::Error, LogFeature::Signup, &short, error_trace);
+            short
+        }
+        UserJoinSignupError::CategoryFull => "Category is full and cannot be joined".into(),
+        UserJoinSignupError::NotFound(val) => val.into(),
+        UserJoinSignupError::UserAlreadyExists => "You are already in this category".into(),
+    };
+
+    let _ = cmp
+        .create_response(
+            http,
+            Response::Message(ResponseMsg::new().content(content).ephemeral(true)),
+        )
+        .await;
 }
