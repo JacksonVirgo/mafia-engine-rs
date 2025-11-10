@@ -38,6 +38,10 @@ impl Component for JoinSignupBtn {
     }
     async fn run(&self, i: &serenity::Interaction, ctx: ContextBundle) {
         if let serenity::Interaction::Component(cmp) = i {
+            let Some(guild_id) = cmp.guild_id else {
+                return;
+            };
+
             let user_id = cmp.user.id.get();
             let Some(raw_category_id) = ctx.i_ctx else {
                 log_feature(
@@ -93,15 +97,24 @@ impl Component for JoinSignupBtn {
             match user_join_signup(&ctx.data.db, category_id, user_id).await {
                 Ok(_) => {}
                 Err(e) => {
+                    let guild_id = guild_id.get();
+                    let channel_id = cmp.channel_id.get();
+                    let message_id = cmp.message.id.get();
+
+                    let message_url = format!(
+                        "https://discord.com/channels/{}/{}/{}",
+                        guild_id, channel_id, message_id
+                    );
+
                     log_feature(
                         LogType::Error,
                         LogFeature::Signup,
                         format!(
-                            "Database failed to add <@{}> ({}) to category {} in signup <#{}>.",
+                            "Database failed to add <@{}> ({}) to category {} in signup {}.",
                             cmp.user.id.get(),
                             cmp.user.name,
                             category_id,
-                            cmp.message.id.get()
+                            message_url
                         ),
                         Some(e.to_string()),
                     );
