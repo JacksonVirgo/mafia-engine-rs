@@ -1,7 +1,7 @@
 use crate::{
     features::signups::{
         create::create_signups,
-        dashboard::{join::JoinSignupBtn, refresh::SignupRefresh},
+        dashboard::{join::JoinSignupBtn, refresh::SignupRefresh, settings::SignupSettings},
     },
     prelude::*,
 };
@@ -19,4 +19,5 @@ plugin!(SignupPlugin, |app| {
     app.add_commands(vec![signups_parent()]);
     app.add_component(SignupRefresh);
     app.add_component(JoinSignupBtn::default());
+    app.add_component(SignupSettings);
 });

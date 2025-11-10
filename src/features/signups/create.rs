@@ -3,7 +3,7 @@ use poise::{CreateReply, serenity_prelude::EditMessage};
 use crate::{
     app::logging::log,
     features::signups::{
-        dashboard::signup_dashboard,
+        dashboard::format::signup_dashboard,
         types::{
             builder::{CategoryBuilder, SignupBuilder},
             full_signup::FullSignup,
