@@ -30,12 +30,12 @@ impl<'a> AppBuilder<'a> {
         self
     }
 
-    pub fn add_component<T>(&mut self, key: impl Into<String>, comp: T) -> &mut Self
+    pub fn add_component<T>(&mut self, comp: T) -> &mut Self
     where
         T: IntoComponentPtr,
     {
         let ptr = comp.shared();
-        COMPONENT_REGISTRY.insert(key.into(), ptr);
+        COMPONENT_REGISTRY.insert(ptr.custom_id(), ptr);
         self
     }
 

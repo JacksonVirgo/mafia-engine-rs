@@ -4,7 +4,10 @@ use crate::{
     app::logging::log,
     features::signups::{
         dashboard::signup_dashboard,
-        types::builder::{CategoryBuilder, SignupBuilder},
+        types::{
+            builder::{CategoryBuilder, SignupBuilder},
+            full_signup::FullSignup,
+        },
     },
     prelude::*,
 };
@@ -54,7 +57,9 @@ pub async fn create_signups(
         _ => {}
     };
 
-    let (embed, components) = signup_dashboard().await;
+    let full_signup = FullSignup::fetch(&ctx.data().db, message.id.get()).await?;
+
+    let (embed, components) = signup_dashboard(full_signup).await;
 
     let _ = message
         .edit(

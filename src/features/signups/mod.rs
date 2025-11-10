@@ -1,5 +1,8 @@
 use crate::{
-    features::signups::{create::create_signups, dashboard::refresh::SignupRefresh},
+    features::signups::{
+        create::create_signups,
+        dashboard::{join::JoinSignupBtn, refresh::SignupRefresh},
+    },
     prelude::*,
 };
 
@@ -14,5 +17,6 @@ pub async fn signups_parent(_: Context<'_>) -> Result<(), Error> {
 
 plugin!(SignupPlugin, |app| {
     app.add_commands(vec![signups_parent()]);
-    app.add_component("signup_refresh", SignupRefresh);
+    app.add_component(SignupRefresh);
+    app.add_component(JoinSignupBtn::default());
 });

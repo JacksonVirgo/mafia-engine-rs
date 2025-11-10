@@ -21,7 +21,14 @@ pub async fn event_handler<'a>(
                     return Ok(());
                 };
 
-                let cmp = get_component(&i.data.custom_id);
+                let (cid, ctx_str) = i
+                    .data
+                    .custom_id
+                    .split_once(':')
+                    .map(|(id, ctx)| (id, Some(ctx.to_string())))
+                    .unwrap_or((i.data.custom_id.as_str(), None));
+
+                let cmp = get_component(&cid);
 
                 match cmp {
                     None => {
@@ -34,25 +41,12 @@ pub async fn event_handler<'a>(
                                 ContextBundle {
                                     ctx: ctx.clone(),
                                     data: data.clone(),
+                                    i_ctx: ctx_str,
                                 },
                             )
                             .await;
                     }
                 }
-
-                // let cmp = data.registry.get(i.data.custom_id.as_str());
-
-                // match cmp {
-                //     Some(component) => {
-                //         let bundle = ContextBundle {
-                //             ctx: ctx.clone(),
-                //             data: data.clone(),
-                //         };
-                //     }
-                //     None => {
-                //         info!("Did not find component");
-                //     }
-                // }
             }
             _ => {}
         },

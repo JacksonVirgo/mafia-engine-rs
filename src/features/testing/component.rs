@@ -7,7 +7,7 @@ pub struct TestingButton;
 #[async_trait]
 impl Button for TestingButton {
     async fn build(&self) -> CreateButton {
-        CreateButton::new("test")
+        CreateButton::new(self.custom_id())
             .label("Test Button Yaya")
             .style(serenity::ButtonStyle::Danger)
     }
@@ -15,6 +15,10 @@ impl Button for TestingButton {
 
 #[async_trait]
 impl Component for TestingButton {
+    fn custom_id(&self) -> String {
+        String::from("test")
+    }
+
     async fn run(&self, i: &serenity::Interaction, ctx: ContextBundle) {
         if let serenity::Interaction::Component(component) = i {
             // let custom_id = &component.data.custom_id;
