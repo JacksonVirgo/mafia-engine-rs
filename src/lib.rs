@@ -17,6 +17,9 @@ pub mod prelude {
         data::prelude::*,
         plugin,
     };
-    pub use poise::serenity_prelude as serenity;
+    pub use poise::serenity_prelude::{
+        self as serenity, CreateInteractionResponse as Response,
+        CreateInteractionResponseMessage as ResponseMsg,
+    };
     pub use tracing::{debug, error, info, warn};
 }

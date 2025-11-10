@@ -49,7 +49,24 @@ pub async fn user_join_signup(db: &Database, category_id: u64, user_id: u64) -> 
         return Err(anyhow::anyhow!("User already exists"));
     }
 
-    // INSERT SLOT + USER
+    sqlx::query!(
+        "INSERT INTO signup_slots (category_id) VALUES (?)",
+        category_id
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    let slot_id: u64 = sqlx::query_scalar!("SELECT LAST_INSERT_ID()")
+        .fetch_one(&mut *tx)
+        .await?;
+
+    sqlx::query!(
+        "INSERT INTO signup_users (slot_id, user_id) VALUES (?, ?)",
+        slot_id,
+        user_id
+    )
+    .execute(&mut *tx)
+    .await?;
 
     tx.commit().await?;
 

@@ -1,9 +1,6 @@
-use crate::prelude::{Button, Component, ContextBundle};
+use crate::prelude::*;
 use async_trait::async_trait;
-use poise::serenity_prelude::{
-    self as serenity, ButtonStyle, CreateButton, CreateInteractionResponse,
-    CreateInteractionResponseMessage,
-};
+use poise::serenity_prelude::{self as serenity, ButtonStyle, CreateButton};
 
 #[derive(Default, Clone)]
 pub struct JoinSignupBtn {
@@ -37,12 +34,10 @@ impl Component for JoinSignupBtn {
             let _ = cmp
                 .create_response(
                     ctx.ctx.http,
-                    CreateInteractionResponse::Message(
-                        CreateInteractionResponseMessage::new().content(format!(
-                            "Cat: {}",
-                            ctx.i_ctx.unwrap_or(String::from("None"))
-                        )),
-                    ),
+                    Response::Message(ResponseMsg::new().content(format!(
+                        "Cat: {}",
+                        ctx.i_ctx.unwrap_or(String::from("None"))
+                    ))),
                 )
                 .await;
         }
