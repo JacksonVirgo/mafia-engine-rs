@@ -1,0 +1,9 @@
+services:
+  discord:
+    build:
+      context: .
+      dockerfile: crates/discord/Dockerfile
+    container_name: discord
+    restart: unless-stopped
+    env_file:
+      - .env
