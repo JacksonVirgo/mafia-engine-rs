@@ -1,6 +1,6 @@
 use crate::{
     app::{
-        discord::{BotState, BotError},
+        discord::{BotError, BotState},
         system::registry::{COMPONENT_REGISTRY, IntoComponentPtr},
     },
     prelude::Plugin,

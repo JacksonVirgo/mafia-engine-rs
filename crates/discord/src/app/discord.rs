@@ -3,17 +3,20 @@ use crate::{
     features::FeaturePlugin,
     prelude::AppBuilder,
 };
+use migrations::Database;
 use poise::serenity_prelude::*;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct BotState {
     pub started_at: std::time::Instant,
+    pub db: Arc<Database>,
 }
 
 pub type BotError = Box<dyn std::error::Error + Send + Sync>;
 pub type BotCtx<'a> = poise::Context<'a, BotState, BotError>;
 
-pub async fn setup_discord_bot() -> anyhow::Result<()> {
+pub async fn setup_discord_bot(db: Database) -> anyhow::Result<()> {
     let token = std::env::var("DISCORD_CLIENT_SECRET")
         .expect("missing DISCORD_CLIENT_SECRET environment variable");
 
@@ -23,7 +26,9 @@ pub async fn setup_discord_bot() -> anyhow::Result<()> {
         | GatewayIntents::DIRECT_MESSAGES;
 
     let mut commands: Vec<poise::Command<BotState, BotError>> = Vec::new();
-    InitialPlugin.build(&mut AppBuilder { commands: &mut commands });
+    InitialPlugin.build(&mut AppBuilder {
+        commands: &mut commands,
+    });
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -34,9 +39,13 @@ pub async fn setup_discord_bot() -> anyhow::Result<()> {
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
+            let db = Arc::new(db);
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(BotState { started_at: std::time::Instant::now() })
+                Ok(BotState {
+                    started_at: std::time::Instant::now(),
+                    db,
+                })
             })
         })
         .build();

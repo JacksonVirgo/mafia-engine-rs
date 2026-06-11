@@ -1,6 +1,7 @@
 [workspace]
 members = [
-  "crates/discord"
+  "crates/discord",
+  "crates/migrations"
 ]
 resolver = "2"
 
