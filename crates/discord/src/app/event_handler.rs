@@ -1,7 +1,7 @@
 use crate::{
     app::{
         discord::{BotError, BotState},
-        system::registry::get_component,
+        system::{middleware::run_stack, registry::get_component},
     },
     prelude::*,
 };
@@ -30,28 +30,57 @@ pub async fn event_handler<'a>(
                     .data
                     .custom_id
                     .split_once(':')
-                    .map(|(id, ctx)| (id, Some(ctx.to_string())))
-                    .unwrap_or((i.data.custom_id.as_str(), None));
+                    .map(|(id, c)| (id.to_string(), Some(c.to_string())))
+                    .unwrap_or((i.data.custom_id.clone(), None));
 
-                let cmp = get_component(&cid);
+                let Some(entry) = get_component(&cid) else {
+                    info!("Could not find component: {}", i.data.custom_id);
+                    return Ok(());
+                };
 
-                match cmp {
-                    None => {
-                        info!("Could not find component: {}", i.data.custom_id);
-                    }
-                    Some(cmp) => {
-                        let _ = cmp
-                            .run(
-                                interaction,
-                                ContextBundle {
-                                    ctx: ctx.clone(),
-                                    data: data.clone(),
-                                    i_ctx: ctx_str,
-                                },
-                            )
-                            .await;
+                let mut req = Request {
+                    kind: RequestKind::Component {
+                        custom_id: cid.clone(),
+                        i_ctx: ctx_str.clone(),
+                    },
+                    serenity_ctx: ctx.clone(),
+                    data: data.clone(),
+                    user_id: i.user.id,
+                    guild_id: i.guild_id,
+                    channel_id: i.channel_id,
+                    ext: Extensions::default(),
+                };
+
+                if !entry.middleware.is_empty() {
+                    match run_stack(&entry.middleware, &mut req).await? {
+                        Outcome::Continue => {}
+                        Outcome::Reject(rej) => {
+                            let resp = serenity::CreateInteractionResponseMessage::new()
+                                .content(rej.message)
+                                .ephemeral(rej.ephemeral);
+                            let _ = i
+                                .create_response(
+                                    &ctx.http,
+                                    serenity::CreateInteractionResponse::Message(resp),
+                                )
+                                .await;
+                            return Ok(());
+                        }
                     }
                 }
+
+                let _ = entry
+                    .component
+                    .run(
+                        interaction,
+                        ContextBundle {
+                            ctx: ctx.clone(),
+                            data: data.clone(),
+                            i_ctx: ctx_str,
+                            ext: req.ext,
+                        },
+                    )
+                    .await;
             }
             _ => {}
         },

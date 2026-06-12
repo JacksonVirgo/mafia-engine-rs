@@ -1,7 +1,10 @@
 use crate::{
     app::{
         discord::{BotError, BotState},
-        system::registry::{COMPONENT_REGISTRY, IntoComponentPtr},
+        system::{
+            middleware::{DynMiddleware, expand_stack},
+            registry::{COMPONENT_REGISTRY, IntoComponentEntry},
+        },
     },
     prelude::Plugin,
 };
@@ -32,14 +35,19 @@ impl<'a> AppBuilder<'a> {
 
     pub fn add_component<T>(&mut self, comp: T) -> &mut Self
     where
-        T: IntoComponentPtr,
+        T: IntoComponentEntry,
     {
-        let ptr = comp.shared();
-        COMPONENT_REGISTRY.insert(ptr.custom_id(), ptr);
+        let entry = comp.into_entry();
+        let key = entry.component.custom_id();
+        COMPONENT_REGISTRY.insert(key, entry);
         self
     }
 
-    pub fn add_command(&mut self, cmd: poise::Command<BotState, BotError>) -> &mut Self {
+    pub fn add_command(&mut self, mut cmd: poise::Command<BotState, BotError>) -> &mut Self {
+        if let Some(list) = cmd.custom_data.downcast_mut::<Vec<DynMiddleware>>() {
+            let owned = std::mem::take(list);
+            *list = expand_stack(owned);
+        }
         self.commands.push(cmd);
         self
     }
@@ -51,6 +59,7 @@ impl<'a> AppBuilder<'a> {
         self.commands.extend(iter);
         self
     }
+
     pub fn add_command_with<F>(&mut self, make: F) -> &mut Self
     where
         F: FnOnce() -> poise::Command<BotState, BotError>,

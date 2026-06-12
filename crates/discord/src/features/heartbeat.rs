@@ -3,6 +3,7 @@ use std::time::Instant;
 
 #[poise::command(slash_command)]
 pub async fn heartbeat(ctx: BotCtx<'_>) -> Result<(), BotError> {
+    let server = ext::<db::Server>(ctx).await?;
     let uptime = ctx.data().started_at.elapsed();
     let days = uptime.as_secs() / 86400;
     let hours = (uptime.as_secs() % 86400) / 3600;
@@ -17,8 +18,8 @@ pub async fn heartbeat(ctx: BotCtx<'_>) -> Result<(), BotError> {
         .edit(
             ctx,
             poise::CreateReply::default().content(format!(
-                "Latency: {}ms\nUptime: {}d {:02}h {:02}m {:02}s",
-                latency_ms, days, hours, minutes, seconds
+                "Server ID: {}\nLatency: {}ms\nUptime: {}d {:02}h {:02}m {:02}s",
+                server.server_id, latency_ms, days, hours, minutes, seconds
             )),
         )
         .await?;

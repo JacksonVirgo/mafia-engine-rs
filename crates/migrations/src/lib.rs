@@ -2,6 +2,8 @@ use sqlx::{MySql, Pool, mysql::MySqlPoolOptions};
 use tokio::time::{Duration, sleep};
 use tracing::{error, info};
 
+pub mod tables;
+
 pub type Database = Pool<MySql>;
 
 pub async fn setup_database() -> anyhow::Result<Database> {

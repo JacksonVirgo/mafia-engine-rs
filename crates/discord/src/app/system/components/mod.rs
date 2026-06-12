@@ -6,6 +6,13 @@ pub struct ContextBundle {
     pub ctx: serenity::Context,
     pub data: BotState,
     pub i_ctx: Option<String>,
+    pub ext: Extensions,
+}
+
+impl ContextBundle {
+    pub fn ext<T: Send + Sync + 'static>(&self) -> Result<&T, BotError> {
+        self.ext.get::<T>()
+    }
 }
 
 #[async_trait]
