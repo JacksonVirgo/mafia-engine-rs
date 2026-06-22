@@ -24,7 +24,7 @@ pub async fn rename(
 
     let server_id = ext::<db::Member>(ctx).await?.server_id;
 
-    let (target_user_id, target_discord_name): (u64, String) = match user {
+    let target_user_id: u64 = match user {
         Some(target) => {
             let guild_id = ctx
                 .guild_id()
@@ -47,17 +47,18 @@ pub async fn rename(
                 .await?;
                 return Ok(());
             }
-            (target.user.id.get(), target.user.name.clone())
+            target.user.id.get()
         }
-        None => (ctx.author().id.get(), ctx.author().name.clone()),
+        None => ctx.author().id.get(),
     };
 
     let db = ctx.data().db.as_ref();
 
     sqlx::query!(
-        "INSERT IGNORE INTO users (user_id, username) VALUES (?, ?)",
+        "INSERT INTO users (user_id, username) VALUES (?, ?) \
+         ON DUPLICATE KEY UPDATE username = VALUES(username)",
         target_user_id,
-        target_discord_name,
+        name,
     )
     .execute(db)
     .await?;

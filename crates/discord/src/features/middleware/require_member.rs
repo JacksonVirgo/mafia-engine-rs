@@ -29,9 +29,7 @@ impl Middleware for RequireMember {
         let nickname = discord_member.nick.as_deref();
 
         sqlx::query!(
-            "INSERT INTO users (user_id, username) \
-                VALUES (?, ?) \
-                ON DUPLICATE KEY UPDATE username = VALUES(username)",
+            "INSERT IGNORE INTO users (user_id, username) VALUES (?, ?)",
             user_id,
             discord_user.name,
         )
