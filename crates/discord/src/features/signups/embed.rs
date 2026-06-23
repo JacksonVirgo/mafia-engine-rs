@@ -1,7 +1,5 @@
 use crate::app::system::components::button::Button;
-use crate::features::signups::buttons::{
-    leave::SignupLeave, refresh::SignupRefresh, settings::SignupSettings,
-};
+use crate::features::signups::buttons::{leave::SignupLeave, settings::SignupSettings};
 use crate::prelude::*;
 use migrations::Database;
 use migrations::tables::SignupRoster;

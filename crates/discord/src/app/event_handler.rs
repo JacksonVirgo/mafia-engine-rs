@@ -8,18 +8,17 @@ use crate::{
 
 use poise::serenity_prelude::{self as serenity, FullEvent, InteractionType};
 
-pub async fn event_handler<'a>(
+pub async fn event_handler(
     ctx: &serenity::Context,
     event: &serenity::FullEvent,
     _framework: poise::FrameworkContext<'_, BotState, BotError>,
     data: &BotState,
 ) -> Result<(), BotError> {
     match event {
-        FullEvent::Message { new_message } => {
-            if new_message.author.bot {
-                return Ok(());
-            }
+        FullEvent::Message { new_message } if new_message.author.bot => {
+            return Ok(());
         }
+
         FullEvent::InteractionCreate { interaction } => {
             let (custom_id, user_id, guild_id, channel_id) = match interaction.kind() {
                 InteractionType::Component => {
