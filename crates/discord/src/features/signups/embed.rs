@@ -54,7 +54,6 @@ pub async fn fetch_and_format_signup(
     }
 
     join_buttons.push(SignupLeave.build().await);
-    join_buttons.push(SignupRefresh.build().await);
     join_buttons.push(SignupSettings.build().await);
 
     let rows: Vec<CreateActionRow> = join_buttons
