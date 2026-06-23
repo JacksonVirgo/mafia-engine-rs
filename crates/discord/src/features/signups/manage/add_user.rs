@@ -60,8 +60,7 @@ impl Component for SignupAddUserMenu {
                     continue;
                 }
             };
-            match SignupMember::admin_add(&ctx.data.db, category_id, user_id.get(), &username)
-                .await
+            match SignupMember::admin_add(&ctx.data.db, category_id, user_id.get(), &username).await
             {
                 Ok(AdminAddResult::Added) => added_any = true,
                 Ok(AdminAddResult::AlreadyInCategory) => {
@@ -82,10 +81,8 @@ impl Component for SignupAddUserMenu {
             }
         }
 
-        if added_any {
-            if let Err(e) = refresh_public(&ctx, component.channel_id, signup_id).await {
-                error!("Failed to refresh public signup after add: {e:?}");
-            }
+        if added_any && let Err(e) = refresh_public(&ctx, component.channel_id, signup_id).await {
+            error!("Failed to refresh public signup after add: {e:?}");
         }
 
         let panel = match render_edit_category(&ctx.data.db, signup_id, category_id).await {
@@ -108,7 +105,10 @@ impl Component for SignupAddUserMenu {
             resp = resp.content("");
         }
         let _ = component
-            .create_response(&ctx.ctx.http, CreateInteractionResponse::UpdateMessage(resp))
+            .create_response(
+                &ctx.ctx.http,
+                CreateInteractionResponse::UpdateMessage(resp),
+            )
             .await;
     }
 }

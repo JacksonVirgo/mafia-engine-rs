@@ -56,10 +56,8 @@ impl Component for SignupRemoveUserMenu {
             }
         }
 
-        if removed_any {
-            if let Err(e) = refresh_public(&ctx, component.channel_id, signup_id).await {
-                error!("Failed to refresh public signup after remove: {e:?}");
-            }
+        if removed_any && let Err(e) = refresh_public(&ctx, component.channel_id, signup_id).await {
+            error!("Failed to refresh public signup after remove: {e:?}");
         }
 
         let panel = match render_edit_category(&ctx.data.db, signup_id, category_id).await {

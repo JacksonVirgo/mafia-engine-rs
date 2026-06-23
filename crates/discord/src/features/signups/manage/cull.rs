@@ -1,6 +1,8 @@
 use crate::{
     app::system::components::Component,
-    features::signups::{embed::fetch_and_format_signup, manage::edit_category::render_edit_category},
+    features::signups::{
+        embed::fetch_and_format_signup, manage::edit_category::render_edit_category,
+    },
     prelude::*,
 };
 
@@ -66,10 +68,10 @@ impl Component for SignupCullButton {
             }
         }
 
-        if removed > 0 {
-            if let Err(e) = refresh_public(&ctx, component.channel_id, signup_id).await {
-                error!("Failed to refresh public signup after cull: {e:?}");
-            }
+        if removed > 0
+            && let Err(e) = refresh_public(&ctx, component.channel_id, signup_id).await
+        {
+            error!("Failed to refresh public signup after cull: {e:?}");
         }
 
         let panel = match render_edit_category(&ctx.data.db, signup_id, category_id).await {
@@ -85,7 +87,10 @@ impl Component for SignupCullButton {
             .embed(panel.embed)
             .components(panel.components);
         let _ = component
-            .create_response(&ctx.ctx.http, CreateInteractionResponse::UpdateMessage(resp))
+            .create_response(
+                &ctx.ctx.http,
+                CreateInteractionResponse::UpdateMessage(resp),
+            )
             .await;
     }
 }
