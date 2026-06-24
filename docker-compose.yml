@@ -32,5 +32,22 @@ services:
       database:
         condition: service_healthy
 
+  archiving:
+    build:
+      context: .
+      dockerfile: crates/archiving/Dockerfile
+      network: host
+      args:
+        DATABASE_URL: mysql://mafia:mafia@localhost:3306/mafia
+    container_name: archiving
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: mysql://mafia:mafia@database:3306/mafia
+    depends_on:
+      database:
+        condition: service_healthy
+
 volumes:
   mysql_data:
