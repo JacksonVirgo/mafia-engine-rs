@@ -1,5 +1,8 @@
 [workspace]
 members = [
+  "crates/bot_framework",
+  "crates/bot_framework_macros",
+  "crates/mafia_bot",
   "crates/discord",
   "crates/migrations"
 ]
