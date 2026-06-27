@@ -1,3 +1,7 @@
 use crate::prelude::*;
 
-plugin!(VoteCounterPlugin, |_app| {});
+pub mod manage;
+
+plugin!(VoteCounterPlugin, |app| {
+    app.add_command(manage::manage());
+});

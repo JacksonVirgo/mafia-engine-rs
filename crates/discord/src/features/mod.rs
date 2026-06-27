@@ -18,4 +18,5 @@ plugin!(FeaturePlugin, |app| {
     app.add_plugin(test_admin::TestAdminPlugin);
 
     app.add_plugin(signups::SignupPlugin);
+    app.add_plugin(votecounter::VoteCounterPlugin);
 });
