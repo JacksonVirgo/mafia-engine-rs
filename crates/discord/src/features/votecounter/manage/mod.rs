@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+pub mod form;
+
 #[poise::command(slash_command, subcommands("votecount"), subcommand_required)]
 pub async fn manage(_: BotCtx<'_>) -> Result<(), BotError> {
     Ok(())

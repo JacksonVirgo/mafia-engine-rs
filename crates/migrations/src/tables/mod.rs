@@ -7,6 +7,10 @@ mod signup_slot;
 mod signups;
 mod user_flags;
 mod users;
+mod votecounter;
+mod votecounter_event;
+mod votecounter_slot;
+mod votecounter_slot_member;
 
 pub use members::Member;
 pub use server_flags::ServerFlag;
@@ -17,3 +21,7 @@ pub use signup_slot::SignupSlot;
 pub use signups::{RosterMember, Signup, SignupBuilder, SignupRoster};
 pub use user_flags::UserFlag;
 pub use users::User;
+pub use votecounter::VoteCounter;
+pub use votecounter_event::VoteCounterEvent;
+pub use votecounter_slot::VoteCounterSlot;
+pub use votecounter_slot_member::VoteCounterSlotMember;
