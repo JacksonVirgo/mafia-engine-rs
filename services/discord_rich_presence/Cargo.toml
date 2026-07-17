@@ -1,0 +1,21 @@
+[package]
+name = "mafia-discord-rich-presence"
+version = "0.1.0"
+edition = "2024"
+description = "Cross-platform desktop companion for Mafia Engine Discord Rich Presence"
+license = "MIT OR Apache-2.0"
+build = "build.rs"
+
+[dependencies]
+auto-launch = "0.6"
+directories = "6"
+discord-rich-presence = "1.1"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+tray-icon = "0.24"
+winit = "0.30"
+png = "0.18"
+
+[build-dependencies]
+png = "0.18"
+embed-resource = "3"
