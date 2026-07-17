@@ -7,9 +7,18 @@ async fn on_ready(ready: Ready, _context: EventContext) -> Result<(), BoxError> 
     Ok(())
 }
 
+#[slash_command(description = "Pong!")]
+async fn ping(
+    ctx: CommandContext,
+    #[description = "Ping?"] message: Option<String>,
+) -> Result<(), BoxError> {
+    ctx.respond(format!("Pong: {}", message.unwrap_or("None".into())))
+        .await
+}
+
 impl Plugin for CorePlugin {
     fn build(&self, app: &mut App) {
-        app.add_event_listener(on_ready);
+        app.add_event_listener(on_ready).add_interaction(ping());
     }
 }
 

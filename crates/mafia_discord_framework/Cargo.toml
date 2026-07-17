@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+mafia-discord-framework-macros = { path = "../mafia_discord_framework_macros" }
 rustls = { version = "0.23.42", default-features = false, features = ["ring", "std"] }
 tokio = { version = "1.46", features = ["rt"] }
 twilight-gateway = "0.17.1"

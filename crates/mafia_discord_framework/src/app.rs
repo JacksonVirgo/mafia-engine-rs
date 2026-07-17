@@ -1,7 +1,11 @@
-use crate::plugin::Plugin;
+use crate::{
+    plugin::Plugin,
+    slash_command::{CommandContext, SlashCommand},
+};
 use std::{any::TypeId, collections::HashSet, error::Error, future::Future, pin::Pin, sync::Arc};
 use twilight_gateway::{EventTypeFlags, Intents, MessageSender, Shard, ShardId, StreamExt as _};
 use twilight_http::Client as HttpClient;
+use twilight_model::application::interaction::InteractionData;
 use twilight_model::gateway::{
     event::Event,
     payload::incoming::{InteractionCreate, MessageCreate, Ready},
@@ -72,6 +76,7 @@ pub struct App {
     plugin_types: HashSet<TypeId>,
     state: PluginState,
     handlers: Vec<Arc<EventHandler>>,
+    interactions: Vec<SlashCommand>,
 }
 
 #[derive(Default, PartialEq)]
@@ -92,6 +97,7 @@ impl App {
             plugin_types: HashSet::new(),
             state: PluginState::Adding,
             handlers: Vec::new(),
+            interactions: Vec::new(),
         }
     }
 
@@ -147,6 +153,20 @@ impl App {
         })
     }
 
+    pub fn add_interaction(&mut self, command: SlashCommand) -> &mut Self {
+        self.assert_adding();
+        assert!(
+            !self
+                .interactions
+                .iter()
+                .any(|existing| existing.name() == command.name()),
+            "slash command `{}` was already added",
+            command.name()
+        );
+        self.interactions.push(command);
+        self
+    }
+
     pub async fn run(mut self) -> Result<(), BoxError> {
         let _ = rustls::crypto::ring::default_provider().install_default();
 
@@ -172,6 +192,13 @@ impl App {
                 gateway: shard.sender(),
             };
 
+            if let Err(error) = self
+                .dispatch_framework_interactions(event.as_ref(), Arc::clone(&http))
+                .await
+            {
+                break 'gateway Err(error);
+            }
+
             for handler in &self.handlers {
                 if let Err(error) = handler(Arc::clone(&event), context.clone()).await {
                     break 'gateway Err(error);
@@ -181,6 +208,37 @@ impl App {
 
         self.call_cleanup();
         result
+    }
+
+    async fn dispatch_framework_interactions(
+        &self,
+        event: &Event,
+        http: Arc<HttpClient>,
+    ) -> Result<(), BoxError> {
+        if let Event::Ready(ready) = event {
+            for command in &self.interactions {
+                command.register(&http, ready.application.id).await?;
+            }
+        }
+
+        let Event::InteractionCreate(payload) = event else {
+            return Ok(());
+        };
+        let interaction = payload.0.clone();
+        let Some(InteractionData::ApplicationCommand(command)) = interaction.data.clone() else {
+            return Ok(());
+        };
+        let Some(slash_command) = self
+            .interactions
+            .iter()
+            .find(|candidate| candidate.name() == command.name)
+        else {
+            return Ok(());
+        };
+
+        slash_command
+            .call(CommandContext::new(http, interaction, *command))
+            .await
     }
 
     fn assert_adding(&self) {

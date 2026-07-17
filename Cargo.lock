@@ -415,11 +415,21 @@ checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
 name = "mafia-discord-framework"
 version = "0.1.0"
 dependencies = [
+ "mafia-discord-framework-macros",
  "rustls",
  "tokio",
  "twilight-gateway",
  "twilight-http",
  "twilight-model",
+]
+
+[[package]]
+name = "mafia-discord-framework-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
