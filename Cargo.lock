@@ -1779,6 +1779,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "twilight-model",
  "url",
 ]
 

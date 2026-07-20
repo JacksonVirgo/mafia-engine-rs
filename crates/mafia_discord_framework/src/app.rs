@@ -75,6 +75,7 @@ pub struct App {
     plugins: Vec<Box<dyn Plugin>>,
     plugin_types: HashSet<TypeId>,
     state: PluginState,
+    middleware: Vec<Arc<EventHandler>>,
     handlers: Vec<Arc<EventHandler>>,
     interactions: Vec<SlashCommand>,
 }
@@ -96,6 +97,7 @@ impl App {
             plugins: Vec::new(),
             plugin_types: HashSet::new(),
             state: PluginState::Adding,
+            middleware: Vec::new(),
             handlers: Vec::new(),
             interactions: Vec::new(),
         }
@@ -130,6 +132,18 @@ impl App {
         self.assert_adding();
         self.handlers.push(Arc::new(move |event, context| {
             Box::pin(handler(event, context))
+        }));
+        self
+    }
+
+    pub fn add_event_middleware<F, Fut>(&mut self, middleware: F) -> &mut Self
+    where
+        F: Fn(Arc<Event>, EventContext) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Result<(), BoxError>> + Send + 'static,
+    {
+        self.assert_adding();
+        self.middleware.push(Arc::new(move |event, context| {
+            Box::pin(middleware(event, context))
         }));
         self
     }
@@ -192,17 +206,23 @@ impl App {
                 gateway: shard.sender(),
             };
 
-            if let Err(error) = self
-                .dispatch_framework_interactions(event.as_ref(), Arc::clone(&http))
-                .await
-            {
-                break 'gateway Err(error);
+            for middleware in &self.middleware {
+                if let Err(error) = middleware(Arc::clone(&event), context.clone()).await {
+                    break 'gateway Err(error);
+                }
             }
 
             for handler in &self.handlers {
                 if let Err(error) = handler(Arc::clone(&event), context.clone()).await {
                     break 'gateway Err(error);
                 }
+            }
+
+            if let Err(error) = self
+                .dispatch_framework_interactions(event.as_ref(), Arc::clone(&http))
+                .await
+            {
+                break 'gateway Err(error);
             }
         };
 

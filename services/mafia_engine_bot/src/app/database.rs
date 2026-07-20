@@ -1,12 +1,38 @@
 use anyhow::{Context, Result, anyhow, bail};
+use mafia_discord_framework::prelude::{App, Event, Plugin};
 use sqlx::migrate::Migrator;
-use sqlx::mysql::{MySqlPool, MySqlPoolOptions};
+use sqlx::mysql::{MySqlPool, MySqlPoolOptions, MySqlQueryResult};
 use tokio::time::{Duration, sleep};
 use url::Url;
 
 pub type Database = MySqlPool;
 
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
+
+pub struct DatabasePlugin {
+    database: Database,
+}
+
+impl DatabasePlugin {
+    pub fn new(database: Database) -> Self {
+        Self { database }
+    }
+}
+
+impl Plugin for DatabasePlugin {
+    fn build(&self, app: &mut App) {
+        let database = self.database.clone();
+        app.add_event_middleware(move |event, _| {
+            let database = database.clone();
+
+            async move {
+                synchronize_event(&database, event.as_ref())
+                    .await
+                    .map_err(Into::into)
+            }
+        });
+    }
+}
 
 pub async fn setup_database() -> Result<Database> {
     let connection_url = database_url()?;
@@ -80,4 +106,178 @@ pub fn database_url() -> Result<String> {
 
 fn required_env(name: &str) -> Result<String> {
     std::env::var(name).with_context(|| format!("{name} must be set"))
+}
+
+async fn synchronize_event(database: &Database, event: &Event) -> Result<()> {
+    if let Some(guild_id) = event.guild_id() {
+        insert_guild(database, guild_id.get()).await?;
+    }
+
+    match event {
+        Event::Ready(ready) => {
+            for guild in &ready.guilds {
+                insert_guild(database, guild.id.get()).await?;
+            }
+
+            insert_user(database, ready.user.id.get(), ready.user.bot).await
+        }
+        Event::GuildCreate(guild_create) => {
+            let twilight_model::gateway::payload::incoming::GuildCreate::Available(guild) =
+                guild_create.as_ref()
+            else {
+                return Ok(());
+            };
+
+            synchronize_members(database, guild.id.get(), &guild.members).await
+        }
+        Event::UserUpdate(user) => insert_user(database, user.id.get(), user.bot).await,
+        Event::MemberAdd(member) => {
+            insert_member(
+                database,
+                member.guild_id.get(),
+                member.user.id.get(),
+                &member.user.name,
+                member.user.bot,
+            )
+            .await
+        }
+        Event::MemberUpdate(member) => {
+            insert_member(
+                database,
+                member.guild_id.get(),
+                member.user.id.get(),
+                &member.user.name,
+                member.user.bot,
+            )
+            .await
+        }
+        Event::MemberRemove(member) => {
+            insert_user(database, member.user.id.get(), member.user.bot).await
+        }
+        Event::MemberChunk(chunk) => {
+            synchronize_members(database, chunk.guild_id.get(), &chunk.members).await
+        }
+        Event::MessageCreate(message) => {
+            synchronize_message(
+                database,
+                &message.0.author,
+                message.0.guild_id.map(|id| id.get()),
+            )
+            .await
+        }
+        Event::MessageUpdate(message) => {
+            synchronize_message(
+                database,
+                &message.0.author,
+                message.0.guild_id.map(|id| id.get()),
+            )
+            .await
+        }
+        Event::InteractionCreate(interaction) => {
+            let interaction = &interaction.0;
+            let Some(user) = interaction.author() else {
+                return Ok(());
+            };
+
+            synchronize_message(database, user, interaction.guild_id.map(|id| id.get())).await
+        }
+        _ => Ok(()),
+    }
+}
+
+async fn synchronize_message(
+    database: &Database,
+    user: &twilight_model::user::User,
+    guild_id: Option<u64>,
+) -> Result<()> {
+    if let Some(guild_id) = guild_id {
+        insert_member(database, guild_id, user.id.get(), &user.name, user.bot).await
+    } else {
+        insert_user(database, user.id.get(), user.bot).await
+    }
+}
+
+async fn synchronize_members(
+    database: &Database,
+    guild_id: u64,
+    members: &[twilight_model::guild::Member],
+) -> Result<()> {
+    for member in members {
+        insert_member(
+            database,
+            guild_id,
+            member.user.id.get(),
+            &member.user.name,
+            member.user.bot,
+        )
+        .await?;
+    }
+
+    Ok(())
+}
+
+async fn insert_guild(database: &Database, guild_id: u64) -> Result<()> {
+    ignore_duplicate_key(
+        sqlx::query("INSERT INTO guilds (id) VALUES (?)")
+            .bind(guild_id)
+            .execute(database)
+            .await,
+        "insert guild",
+    )
+}
+
+async fn insert_user(database: &Database, user_id: u64, is_bot: bool) -> Result<()> {
+    if is_bot {
+        return Ok(());
+    }
+
+    ignore_duplicate_key(
+        sqlx::query("INSERT INTO users (id) VALUES (?)")
+            .bind(user_id)
+            .execute(database)
+            .await,
+        "insert user",
+    )
+}
+
+async fn insert_member(
+    database: &Database,
+    guild_id: u64,
+    user_id: u64,
+    username: &str,
+    is_bot: bool,
+) -> Result<()> {
+    if is_bot {
+        return Ok(());
+    }
+
+    insert_user(database, user_id, false).await?;
+
+    ignore_duplicate_key(
+        sqlx::query("INSERT INTO members (user_id, guild_id, username) VALUES (?, ?, ?)")
+            .bind(user_id)
+            .bind(guild_id)
+            .bind(username)
+            .execute(database)
+            .await,
+        "insert member",
+    )
+}
+
+fn ignore_duplicate_key(
+    result: std::result::Result<MySqlQueryResult, sqlx::Error>,
+    operation: &str,
+) -> Result<()> {
+    match result {
+        Ok(_) => Ok(()),
+        Err(error)
+            if error
+                .as_database_error()
+                .and_then(|database_error| database_error.code())
+                .is_some_and(|code| code == "1062") =>
+        {
+            Ok(())
+        }
+        Err(error) => Err(error).with_context(|| format!("failed to {operation}")),
+    }
 }
