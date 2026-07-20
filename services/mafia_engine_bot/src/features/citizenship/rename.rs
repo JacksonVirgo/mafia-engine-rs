@@ -1,20 +1,16 @@
 use crate::app::database::{Database, is_unique_violation};
 use mafia_discord_framework::prelude::*;
 
-pub fn command(database: Database) -> SlashCommand {
+pub fn command() -> SlashCommand {
     SlashCommand::new("rename", "Rename yourself in the bot")
         .required_string("username", "new name")
-        .handler(move |ctx| {
-            let database = database.clone();
-
-            async move {
-                let username = ctx.required_string("username")?.to_owned();
-                rename(ctx, database, username).await
-            }
+        .handler(|ctx| async move {
+            let username = ctx.required_string("username")?.to_owned();
+            rename(ctx, username).await
         })
 }
 
-async fn rename(ctx: CommandContext, database: Database, username: String) -> Result<(), BoxError> {
+async fn rename(ctx: CommandContext, username: String) -> Result<(), BoxError> {
     let username = username.trim();
     if username.is_empty() || username.chars().count() > 32 {
         ctx.respond("Your username must contain between 1 and 32 characters.")
@@ -33,6 +29,9 @@ async fn rename(ctx: CommandContext, database: Database, username: String) -> Re
     if user.bot {
         return Ok(());
     }
+    let database = ctx
+        .global::<Database>()
+        .ok_or("Database is not configured in the global context")?;
 
     let result = sqlx::query(
         "UPDATE members
@@ -42,7 +41,7 @@ async fn rename(ctx: CommandContext, database: Database, username: String) -> Re
     .bind(username)
     .bind(user.id.get())
     .bind(guild_id.get())
-    .execute(&database)
+    .execute(database.as_ref())
     .await;
 
     match result {

@@ -12,8 +12,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let database = setup_database().await?;
     let token = std::env::var("DISCORD_TOKEN")?;
     let mut app = App::new(token, Intents::all());
-    app.add_plugin(DatabasePlugin::new(database.clone()));
-    app.add_plugin(CorePlugin::new(database));
+    app.global_context().insert(database);
+    app.add_plugin(DatabasePlugin);
+    app.add_plugin(CorePlugin);
     app.run().await?;
 
     Ok(())

@@ -1,4 +1,6 @@
 use crate::{
+    component::{Component, ComponentContext, RegisteredComponent},
+    context::GlobalContext,
     plugin::Plugin,
     slash_command::{CommandContext, SlashCommand},
 };
@@ -56,6 +58,7 @@ boxed_event_payload!(InteractionCreate, InteractionCreate, INTERACTION_CREATE);
 pub struct EventContext {
     http: Arc<HttpClient>,
     gateway: MessageSender,
+    global: GlobalContext,
 }
 
 impl EventContext {
@@ -65,6 +68,17 @@ impl EventContext {
 
     pub fn gateway(&self) -> &MessageSender {
         &self.gateway
+    }
+
+    pub fn global_context(&self) -> &GlobalContext {
+        &self.global
+    }
+
+    pub fn global<T>(&self) -> Option<Arc<T>>
+    where
+        T: Send + Sync + 'static,
+    {
+        self.global.get()
     }
 }
 
@@ -80,6 +94,8 @@ pub struct App {
     handlers: Vec<Arc<EventHandler>>,
     handler_labels: Vec<&'static str>,
     interactions: Vec<SlashCommand>,
+    components: Vec<RegisteredComponent>,
+    global: GlobalContext,
 }
 
 #[derive(Default, PartialEq)]
@@ -104,7 +120,14 @@ impl App {
             handlers: Vec::new(),
             handler_labels: Vec::new(),
             interactions: Vec::new(),
+            components: Vec::new(),
+            global: GlobalContext::default(),
         }
+    }
+
+    /// Returns the application-wide context shared with plugins and handler contexts.
+    pub fn global_context(&self) -> &GlobalContext {
+        &self.global
     }
 
     pub fn set_wanted_events(&mut self, events: EventTypeFlags) -> &mut Self {
@@ -195,6 +218,25 @@ impl App {
         self
     }
 
+    /// Registers a struct-backed button or select menu.
+    pub fn add_component(&mut self, component: Component) -> &mut Self {
+        self.add_registered_component(component.into_registered())
+    }
+
+    fn add_registered_component(&mut self, component: RegisteredComponent) -> &mut Self {
+        self.assert_adding();
+        assert!(
+            !self
+                .components
+                .iter()
+                .any(|existing| existing.custom_id() == component.custom_id()),
+            "component `{}` was already added",
+            component.custom_id()
+        );
+        self.components.push(component);
+        self
+    }
+
     pub async fn run(mut self) -> Result<(), BoxError> {
         let _ = rustls::crypto::ring::default_provider().install_default();
 
@@ -218,6 +260,7 @@ impl App {
             let context = EventContext {
                 http: Arc::clone(&http),
                 gateway: shard.sender(),
+                global: self.global.clone(),
             };
 
             for middleware in &self.middleware {
@@ -259,20 +302,45 @@ impl App {
             return Ok(());
         };
         let interaction = payload.0.clone();
-        let Some(InteractionData::ApplicationCommand(command)) = interaction.data.clone() else {
-            return Ok(());
-        };
-        let Some(slash_command) = self
-            .interactions
-            .iter()
-            .find(|candidate| candidate.name() == command.name)
-        else {
-            return Ok(());
-        };
+        match interaction.data.clone() {
+            Some(InteractionData::ApplicationCommand(command)) => {
+                let Some(slash_command) = self
+                    .interactions
+                    .iter()
+                    .find(|candidate| candidate.name() == command.name)
+                else {
+                    return Ok(());
+                };
 
-        slash_command
-            .call(CommandContext::new(http, interaction, *command))
-            .await
+                slash_command
+                    .call(CommandContext::new(
+                        http,
+                        interaction,
+                        *command,
+                        self.global.clone(),
+                    ))
+                    .await
+            }
+            Some(InteractionData::MessageComponent(component_data)) => {
+                let Some(component) = self
+                    .components
+                    .iter()
+                    .find(|candidate| candidate.custom_id() == component_data.custom_id)
+                else {
+                    return Ok(());
+                };
+
+                component
+                    .call(ComponentContext::new(
+                        http,
+                        interaction,
+                        *component_data,
+                        self.global.clone(),
+                    ))
+                    .await
+            }
+            _ => Ok(()),
+        }
     }
 
     fn assert_adding(&self) {
@@ -291,12 +359,18 @@ impl App {
         self.state = PluginState::Finished;
 
         let interactions: Vec<_> = self.interactions.iter().map(SlashCommand::name).collect();
+        let components: Vec<_> = self
+            .components
+            .iter()
+            .map(RegisteredComponent::custom_id)
+            .collect();
         tracing::info!(
             intents = ?self.intents,
             wanted_events = ?self.wanted_events,
             middleware = ?self.middleware_labels,
             event_listeners = ?self.handler_labels,
             interactions = ?interactions,
+            components = ?components,
             "loaded application configuration"
         );
     }

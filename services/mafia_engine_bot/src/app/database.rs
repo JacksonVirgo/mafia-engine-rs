@@ -9,24 +9,19 @@ pub type Database = MySqlPool;
 
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
-pub struct DatabasePlugin {
-    database: Database,
-}
-
-impl DatabasePlugin {
-    pub fn new(database: Database) -> Self {
-        Self { database }
-    }
-}
+pub struct DatabasePlugin;
 
 impl Plugin for DatabasePlugin {
     fn build(&self, app: &mut App) {
-        let database = self.database.clone();
+        let database = app
+            .global_context()
+            .get::<Database>()
+            .expect("DatabasePlugin requires Database in the global context");
         app.add_event_middleware(move |event, _| {
             let database = database.clone();
 
             async move {
-                synchronize_event(&database, event.as_ref())
+                synchronize_event(database.as_ref(), event.as_ref())
                     .await
                     .map_err(Into::into)
             }

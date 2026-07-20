@@ -1,4 +1,4 @@
-use crate::app::BoxError;
+use crate::{app::BoxError, component::DiscordComponent, context::GlobalContext};
 use std::{
     error::Error,
     fmt::{Display, Formatter},
@@ -176,6 +176,7 @@ pub struct CommandContext {
     http: Arc<HttpClient>,
     interaction: Interaction,
     command: CommandData,
+    global: GlobalContext,
 }
 
 impl CommandContext {
@@ -183,11 +184,13 @@ impl CommandContext {
         http: Arc<HttpClient>,
         interaction: Interaction,
         command: CommandData,
+        global: GlobalContext,
     ) -> Self {
         Self {
             http,
             interaction,
             command,
+            global,
         }
     }
 
@@ -197,6 +200,17 @@ impl CommandContext {
 
     pub fn command(&self) -> &CommandData {
         &self.command
+    }
+
+    pub fn global_context(&self) -> &GlobalContext {
+        &self.global
+    }
+
+    pub fn global<T>(&self) -> Option<Arc<T>>
+    where
+        T: Send + Sync + 'static,
+    {
+        self.global.get()
     }
 
     pub fn required_string(&self, name: &str) -> Result<&str, CommandOptionError> {
@@ -283,6 +297,27 @@ impl CommandContext {
             kind: InteractionResponseType::ChannelMessageWithSource,
             data: Some(InteractionResponseData {
                 embeds: Some(vec![embed]),
+                ..InteractionResponseData::default()
+            }),
+        };
+
+        self.http
+            .interaction(self.interaction.application_id)
+            .create_response(self.interaction.id, &self.interaction.token, &response)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn respond_components(
+        &self,
+        content: impl Into<String>,
+        components: Vec<DiscordComponent>,
+    ) -> Result<(), BoxError> {
+        let response = InteractionResponse {
+            kind: InteractionResponseType::ChannelMessageWithSource,
+            data: Some(InteractionResponseData {
+                content: Some(content.into()),
+                components: Some(components),
                 ..InteractionResponseData::default()
             }),
         };

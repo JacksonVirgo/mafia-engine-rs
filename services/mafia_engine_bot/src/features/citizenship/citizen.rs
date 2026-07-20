@@ -5,17 +5,12 @@ use twilight_model::{
     user::User,
 };
 
-pub fn command(database: Database) -> SlashCommand {
-    SlashCommand::new("citizenship", "Show your Mafia Engine citizenship profile").handler(
-        move |ctx| {
-            let database = database.clone();
-
-            async move { citizenship(ctx, database).await }
-        },
-    )
+pub fn command() -> SlashCommand {
+    SlashCommand::new("citizenship", "Show your Mafia Engine citizenship profile")
+        .handler(|ctx| async move { citizenship(ctx).await })
 }
 
-async fn citizenship(ctx: CommandContext, database: Database) -> Result<(), BoxError> {
+async fn citizenship(ctx: CommandContext) -> Result<(), BoxError> {
     let Some(guild_id) = ctx.interaction().guild_id else {
         ctx.respond("This command can only be used in a server.")
             .await?;
@@ -27,6 +22,9 @@ async fn citizenship(ctx: CommandContext, database: Database) -> Result<(), BoxE
     if user.bot {
         return Ok(());
     }
+    let database = ctx
+        .global::<Database>()
+        .ok_or("Database is not configured in the global context")?;
 
     let membership = sqlx::query_as::<_, (Option<String>, i64)>(
         "SELECT username, CAST(UNIX_TIMESTAMP(created_at) AS SIGNED)
@@ -36,7 +34,7 @@ async fn citizenship(ctx: CommandContext, database: Database) -> Result<(), BoxE
     )
     .bind(user.id.get())
     .bind(guild_id.get())
-    .fetch_optional(&database)
+    .fetch_optional(database.as_ref())
     .await?;
 
     let Some((username, joined_at)) = membership else {

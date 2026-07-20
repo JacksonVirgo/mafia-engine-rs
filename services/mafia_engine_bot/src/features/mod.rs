@@ -1,22 +1,15 @@
-use crate::app::database::Database;
 use mafia_discord_framework::prelude::*;
 
 pub mod citizenship;
+pub mod test;
 
-pub struct CorePlugin {
-    database: Database,
-}
-
-impl CorePlugin {
-    pub fn new(database: Database) -> Self {
-        Self { database }
-    }
-}
+pub struct CorePlugin;
 
 impl Plugin for CorePlugin {
     fn build(&self, app: &mut App) {
         app.add_event_listener(on_ready);
-        app.add_plugin(citizenship::CitizenshipPlugin::new(self.database.clone()));
+        app.add_plugin(citizenship::CitizenshipPlugin);
+        test::register(app);
     }
 }
 
