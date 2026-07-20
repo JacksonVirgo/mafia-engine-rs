@@ -1,0 +1,20 @@
+services:
+  database:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DATABASE_NAME:?DATABASE_NAME must be set}
+      MYSQL_USER: ${DATABASE_USER:?DATABASE_USER must be set}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD must be set}
+      MYSQL_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD:?DATABASE_ROOT_PASSWORD must be set}
+    ports:
+      - "${DATABASE_PORT:?DATABASE_PORT must be set}:3306"
+    volumes:
+      - mafia_engine_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$${DATABASE_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  mafia_engine_mysql:
