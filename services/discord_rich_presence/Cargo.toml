@@ -2,8 +2,6 @@
 name = "mafia-discord-rich-presence"
 version = "0.1.0"
 edition = "2024"
-description = "Cross-platform desktop companion for Mafia Engine Discord Rich Presence"
-license = "MIT OR Apache-2.0"
 build = "build.rs"
 
 [dependencies]
