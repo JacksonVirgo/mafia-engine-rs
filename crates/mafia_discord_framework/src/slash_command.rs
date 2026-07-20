@@ -190,6 +190,14 @@ impl CommandContext {
         }
     }
 
+    pub fn interaction(&self) -> &Interaction {
+        &self.interaction
+    }
+
+    pub fn command(&self) -> &CommandData {
+        &self.command
+    }
+
     pub fn required_string(&self, name: &str) -> Result<&str, CommandOptionError> {
         self.string(name)?
             .ok_or_else(|| CommandOptionError::missing(name, "string"))
