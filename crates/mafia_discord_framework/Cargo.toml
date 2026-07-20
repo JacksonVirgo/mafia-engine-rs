@@ -10,3 +10,4 @@ tokio = { version = "1.46", features = ["rt"] }
 twilight-gateway = "0.17.1"
 twilight-http = "0.17.1"
 twilight-model = "0.17.1"
+tracing = "0.1.44"

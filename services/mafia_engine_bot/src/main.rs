@@ -5,16 +5,16 @@ use mafia_engine_bot::{
 };
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     dotenv::dotenv().ok();
     tracing_subscriber::fmt::init();
 
     let database = setup_database().await?;
     let token = std::env::var("DISCORD_TOKEN")?;
     let mut app = App::new(token, Intents::all());
-    app.add_plugin(DatabasePlugin::new(database));
-    app.add_plugin(CorePlugin);
-    let _ = app.run().await;
+    app.add_plugin(DatabasePlugin::new(database.clone()));
+    app.add_plugin(CorePlugin::new(database));
+    app.run().await?;
 
     Ok(())
 }

@@ -270,14 +270,13 @@ fn ignore_duplicate_key(
 ) -> Result<()> {
     match result {
         Ok(_) => Ok(()),
-        Err(error)
-            if error
-                .as_database_error()
-                .and_then(|database_error| database_error.code())
-                .is_some_and(|code| code == "1062") =>
-        {
-            Ok(())
-        }
+        Err(error) if is_unique_violation(&error) => Ok(()),
         Err(error) => Err(error).with_context(|| format!("failed to {operation}")),
     }
+}
+
+pub fn is_unique_violation(error: &sqlx::Error) -> bool {
+    error
+        .as_database_error()
+        .is_some_and(|database_error| database_error.is_unique_violation())
 }

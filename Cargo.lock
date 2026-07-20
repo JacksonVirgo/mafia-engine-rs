@@ -1739,6 +1739,7 @@ dependencies = [
  "mafia-discord-framework-macros",
  "rustls",
  "tokio",
+ "tracing",
  "twilight-gateway",
  "twilight-http",
  "twilight-model",

@@ -76,7 +76,9 @@ pub struct App {
     plugin_types: HashSet<TypeId>,
     state: PluginState,
     middleware: Vec<Arc<EventHandler>>,
+    middleware_labels: Vec<&'static str>,
     handlers: Vec<Arc<EventHandler>>,
+    handler_labels: Vec<&'static str>,
     interactions: Vec<SlashCommand>,
 }
 
@@ -98,7 +100,9 @@ impl App {
             plugin_types: HashSet::new(),
             state: PluginState::Adding,
             middleware: Vec::new(),
+            middleware_labels: Vec::new(),
             handlers: Vec::new(),
+            handler_labels: Vec::new(),
             interactions: Vec::new(),
         }
     }
@@ -129,10 +133,19 @@ impl App {
         F: Fn(Arc<Event>, EventContext) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = Result<(), BoxError>> + Send + 'static,
     {
+        self.add_event_handler_labeled("all events", handler)
+    }
+
+    fn add_event_handler_labeled<F, Fut>(&mut self, label: &'static str, handler: F) -> &mut Self
+    where
+        F: Fn(Arc<Event>, EventContext) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Result<(), BoxError>> + Send + 'static,
+    {
         self.assert_adding();
         self.handlers.push(Arc::new(move |event, context| {
             Box::pin(handler(event, context))
         }));
+        self.handler_labels.push(label);
         self
     }
 
@@ -145,6 +158,7 @@ impl App {
         self.middleware.push(Arc::new(move |event, context| {
             Box::pin(middleware(event, context))
         }));
+        self.middleware_labels.push("all events");
         self
     }
 
@@ -154,7 +168,7 @@ impl App {
         F: Fn(E, EventContext) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = Result<(), BoxError>> + Send + 'static,
     {
-        self.add_event_handler(move |event, context| {
+        self.add_event_handler_labeled(std::any::type_name::<E>(), move |event, context| {
             let future = E::from_event(event.as_ref()).map(|payload| listener(payload, context));
 
             async move {
@@ -275,6 +289,16 @@ impl App {
         }
         self.plugins = plugins;
         self.state = PluginState::Finished;
+
+        let interactions: Vec<_> = self.interactions.iter().map(SlashCommand::name).collect();
+        tracing::info!(
+            intents = ?self.intents,
+            wanted_events = ?self.wanted_events,
+            middleware = ?self.middleware_labels,
+            event_listeners = ?self.handler_labels,
+            interactions = ?interactions,
+            "loaded application configuration"
+        );
     }
 
     fn call_cleanup(&mut self) {

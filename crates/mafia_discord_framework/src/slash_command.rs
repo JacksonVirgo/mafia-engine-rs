@@ -14,6 +14,7 @@ use twilight_model::{
         },
         interaction::{Interaction, application_command::CommandData},
     },
+    channel::message::Embed,
     http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType},
     id::{Id, marker::ApplicationMarker},
 };
@@ -266,6 +267,22 @@ impl CommandContext {
             kind: InteractionResponseType::ChannelMessageWithSource,
             data: Some(InteractionResponseData {
                 content: Some(content.into()),
+                ..InteractionResponseData::default()
+            }),
+        };
+
+        self.http
+            .interaction(self.interaction.application_id)
+            .create_response(self.interaction.id, &self.interaction.token, &response)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn respond_embed(&self, embed: Embed) -> Result<(), BoxError> {
+        let response = InteractionResponse {
+            kind: InteractionResponseType::ChannelMessageWithSource,
+            data: Some(InteractionResponseData {
+                embeds: Some(vec![embed]),
                 ..InteractionResponseData::default()
             }),
         };
